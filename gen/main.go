@@ -357,6 +357,17 @@ func main() {
 		panic(err)
 	}
 	fmt.Printf("wrote %s: %d cases, %d decodes, %d txs\n", path, len(fx.Cases), len(fx.Decodes), len(fx.Txs))
+
+	gfx := gnoCases()
+	out, err = json.MarshalIndent(gfx, "", " ")
+	if err != nil {
+		panic(err)
+	}
+	path = filepath.Join(os.Args[1], "gno-fixtures.json")
+	if err := os.WriteFile(path, append(out, '\n'), 0o644); err != nil {
+		panic(err)
+	}
+	fmt.Printf("wrote %s: %d cases, %d decodes\n", path, len(gfx.Cases), len(gfx.Decodes))
 }
 
 // handpicked covers edges the fuzzer is unlikely to hit.

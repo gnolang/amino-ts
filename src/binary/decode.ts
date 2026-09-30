@@ -22,6 +22,7 @@ import {
   type Resolved,
   typ3Of,
   typeName,
+  zeroValue,
 } from "../info";
 import {
   inRange,
@@ -31,6 +32,7 @@ import {
   type AnyValue,
   type ArrayType,
   type FieldOptions,
+  type InterfaceType,
   resolve,
   type ResolvedFieldOptions,
   type SliceType,
@@ -71,6 +73,16 @@ export const MAX_ANY_DEPTH = 64;
 export interface DecodeOptions {
   /** Throw on strings that are not valid UTF-8 instead of substituting U+FFFD. */
   strictUtf8?: boolean
+  /**
+   * Which go-amino decoder to match where the two disagree. `"generated"`
+   * (the default) is the pb3_gen code every tm2 and gno.land type uses, so
+   * it is what nodes run. `"reflect"` is the reflection decoder Go falls back
+   * to for types without generated code. They differ on two malformed inputs:
+   * reflect reads a `[]byte` cut off right after its field key as empty, and
+   * decodes empty top-level input for a MarshalAmino type to its zero value
+   * without calling UnmarshalAmino.
+   */
+  goDecoder?: "generated" | "reflect"
 }
 
 type Opts = Partial<ResolvedFieldOptions>;
@@ -87,6 +99,10 @@ export class BinaryDecoder {
     const info = deref(type);
     const topIsStruct = isStructOrUnpacked(info, NO_OPTS);
     if (bz.length === 0 && !topIsStruct && info.kind !== "interface") {
+      // The generated decoders still run UnmarshalAmino on the empty repr.
+      if (info.kind === "repr" && this.options.goDecoder !== "reflect") {
+        return info.fromRepr(zeroValue(info.repr) as never);
+      }
       return defaultValue(info);
     }
     let bare = true;
@@ -138,7 +154,7 @@ export class BinaryDecoder {
         }
       }
       case "interface":
-        return this.decodeInterface(bz, fopts, bare, anyDepth + 1);
+        return this.decodeInterface(bz, fopts, bare, anyDepth + 1, info);
       case "bytearray": {
         if (bz.length < info.length) throw new AminoError(`insufficient bytes to decode [${info.length}]byte`);
         const [bs, n] = decodeByteSlice(bz);
@@ -148,7 +164,7 @@ export class BinaryDecoder {
         return [bs, n];
       }
       case "bytes": {
-        if (bz.length === 0) return [null, 0];
+        if (bz.length === 0 && this.options.goDecoder === "reflect") return [null, 0];
         const [bs, n] = decodeByteSlice(bz);
         return [bs.length === 0 ? null : bs, n];
       }
@@ -220,7 +236,7 @@ export class BinaryDecoder {
   }
 
   /** Go `decodeReflectBinaryInterface`. */
-  private decodeInterface(bz: Uint8Array, fopts: Opts, bare: boolean, anyDepth: number): Decoded<AnyValue | null> {
+  private decodeInterface(bz: Uint8Array, fopts: Opts, bare: boolean, anyDepth: number, iface?: InterfaceType): Decoded<AnyValue | null> {
     if (anyDepth > MAX_ANY_DEPTH) throw new AminoError(`exceeded max Any nesting depth ${MAX_ANY_DEPTH}`);
     let n: number;
     [bz, n] = decodeMaybeBare(bz, bare);
@@ -254,6 +270,7 @@ export class BinaryDecoder {
     }
     if (urlBytes.length === 0) throw new AminoError("invalid type_url: empty");
     const resolved = this.registry.resolveTypeUrl(String.fromCharCode(...urlBytes));
+    if (iface) this.registry.assertImplements(iface, resolved.typeUrl);
     return [
       {
         typeUrl: resolved.typeUrl,

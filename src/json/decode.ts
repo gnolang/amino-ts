@@ -27,6 +27,7 @@ import {
   type AminoType,
   type AnyValue,
   type FieldOptions,
+  type InterfaceType,
   resolve,
   type StructType,
   type TypeRegistry,
@@ -80,7 +81,7 @@ export class JsonDecoder {
         }
       }
       case "interface":
-        return this.decodeInterface(node, fopts, anyDepth + 1);
+        return this.decodeInterface(node, fopts, anyDepth + 1, info);
       case "bytearray": {
         const bz = fromBase64(expectString(node, typeName(info)));
         if (bz.length !== info.length) {
@@ -147,7 +148,7 @@ export class JsonDecoder {
   }
 
   /** Go `decodeReflectJSONInterface`. */
-  private decodeInterface(node: JsonNode, fopts: FieldOptions, anyDepth: number): AnyValue {
+  private decodeInterface(node: JsonNode, fopts: FieldOptions, anyDepth: number, iface?: InterfaceType): AnyValue {
     if (anyDepth > MAX_ANY_DEPTH) throw new AminoError(`exceeded max Any nesting depth ${MAX_ANY_DEPTH}`);
     if (node.t !== "obj") throw new AminoError(`cannot parse Any JSON wrapper: expected '{', got ${render(node)}`);
     const m = objectMap(node);
@@ -158,6 +159,7 @@ export class JsonDecoder {
     }
     if (typeUrl === "") throw new AminoError("JSON encoding of interfaces require non-empty @type field");
     const resolved = this.registry.resolveTypeUrl(typeUrl);
+    if (iface) this.registry.assertImplements(iface, resolved.typeUrl);
     const cinfo = resolved.type;
 
     if (isJSONAnyValueType(cinfo)) {

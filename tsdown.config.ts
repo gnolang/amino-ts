@@ -4,7 +4,7 @@ import {
 
 export default defineConfig([
   {
-    entry: ["./src/index.ts"],
+    entry: ["./src/index.ts", "./src/gno/index.ts"],
     treeshake: false,
     unbundle: true,
     attw: true,
@@ -18,7 +18,7 @@ export default defineConfig([
     format: ["cjs"],
   },
   {
-    entry: ["./src/index.ts"],
+    entry: ["./src/index.ts", "./src/gno/index.ts"],
     treeshake: false,
     unbundle: true,
     attw: true,

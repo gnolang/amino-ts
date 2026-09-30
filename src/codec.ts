@@ -24,6 +24,7 @@ import {
   type AminoType,
   type AnyValue,
   type Infer,
+  type InterfaceType,
   resolve,
   t,
 } from "./types";
@@ -60,6 +61,9 @@ export class Codec {
     type: AminoType
   }>();
 
+  /** For each interface with declared implementers, their canonical type URLs. */
+  private readonly implementers = new Map<InterfaceType, Set<string>>();
+
   private readonly binEnc: BinaryEncoder;
   private readonly binDec: BinaryDecoder;
   private readonly jsonEnc: JsonEncoder;
@@ -94,8 +98,13 @@ export class Codec {
   /**
    * Registers a concrete type under its type URL (`/<p3 package>.<Name>`), so
    * interface values can hold it. Registering the same URL twice fails, as in Go.
+   *
+   * `implements` lists the interfaces the Go type implements. Once an
+   * interface has any declared implementer (or `declareInterface` was called
+   * on it), it only accepts those, as Go rejects decoding a type that does not
+   * implement the target interface. Other interfaces accept any registered type.
    */
-  register(typeUrl: string, type: AminoType): this {
+  register(typeUrl: string, type: AminoType, implements_: readonly InterfaceType[] = []): this {
     const fullname = fullnameOf(typeUrl);
     if (!fullname.includes(".")) {
       throw new AminoError(`invalid type_url ${JSON.stringify(typeUrl)}, full name must contain dot`);
@@ -112,7 +121,29 @@ export class Codec {
       typeUrl,
       type,
     });
+    for (const iface of implements_) {
+      let set = this.implementers.get(iface);
+      if (!set) this.implementers.set(iface, set = new Set());
+      set.add(typeUrl);
+    }
     return this;
+  }
+
+  /**
+   * Declares that `iface` only holds the types registered as implementing it,
+   * even if there are none yet.
+   */
+  declareInterface(iface: InterfaceType): this {
+    if (!this.implementers.has(iface)) this.implementers.set(iface, new Set());
+    return this;
+  }
+
+  /** Throws when `iface` is declared or has declared implementers, and the type is not one of them. */
+  assertImplements(iface: InterfaceType, typeUrl: string): void {
+    const set = this.implementers.get(iface);
+    if (set && !set.has(typeUrl)) {
+      throw new AminoError(`decoded type ${typeUrl} is not assignable to interface ${iface.name ?? "interface"}`);
+    }
   }
 
   /**

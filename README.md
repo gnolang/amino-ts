@@ -60,21 +60,77 @@ cdc.marshalJSONAny({ typeUrl: "/bank.MsgSend", value: msg });
 // '{"@type":"/bank.MsgSend","from_address":"g1...",...}'
 ```
 
-### Sign bytes
+## gno.land and tm2 types
 
-tm2 signs `sortJSON(aminoJSON(signDoc))`. `sortJSON` matches `std.MustSortJSON`
-(keys sorted, whitespace stripped, and strings and numbers re-encoded the way Go
-does):
+`@gnolang/amino-ts/gno` ships schemas for every amino type of tm2 and gno.land:
+transactions and messages, accounts, blocks, headers, commits, votes,
+validators, evidence, ABCI requests and responses, events, Merkle proofs and
+genesis state. They are generated from go-amino's own type information
+(`pnpm schemas`), so field order, tags and type URLs match the Go code.
 
 ```ts
-import { sortJSON } from "@gnolang/amino-ts";
+import { Infer } from "@gnolang/amino-ts";
+import {
+  gnoCodec, std, vm, bft, abci,
+  addressFromBech32, parseCoins, getSignaturePayload, type SignDoc,
+} from "@gnolang/amino-ts/gno";
 
-const signBytes = new TextEncoder().encode(sortJSON(cdc.marshalJSON(SignDoc, doc)));
+const cdc = gnoCodec(); // every type registered under its Go type URL
+
+const call: Infer<typeof vm.MsgCall> = {
+  caller: addressFromBech32("g1jg8mtutu9khhfwc4nxmuhcpftf0pajdhfvsqf5"),
+  send: parseCoins("1000ugnot"),
+  maxDeposit: [],
+  pkgPath: "gno.land/r/demo/counter",
+  func: "Incr",
+  args: null,
+};
+
+const tx: Infer<typeof std.Tx> = {
+  msgs: [{ typeUrl: "/vm.m_call", value: call }],
+  fee: { gasWanted: 1_000_000n, gasFee: { denom: "ugnot", amount: 1000n } },
+  signatures: null,
+  memo: "",
+};
+
+// Sign bytes, exactly as std.GetSignaturePayload builds them.
+const doc: SignDoc = { chainID: "gnoland1", accountNumber: 7n, sequence: 0n, fee: tx.fee, msgs: tx.msgs, memo: tx.memo };
+const signBytes = getSignaturePayload(cdc, doc);
+// (getSignaturePayloadLegacy gives the older rendering; nodes accept both.)
+
+const txBytes = cdc.marshal(std.Tx, tx);
+
+// Blocks and results from RPC:
+const header = cdc.unmarshal(bft.Header, headerBytes);
+const result = cdc.unmarshal(abci.ResponseDeliverTx, resultBytes);
 ```
 
-`tests/tm2.ts` defines the full gno.land transaction schemas (`std.Tx`,
-`bank.MsgSend`, `vm.MsgCall`, `vm.MsgAddPackage`, `vm.MsgRun`, and both sign
-doc renderings). Copy it as a starting point.
+Namespaces follow the Go packages: `std`, `bank`, `vm`, `auth`, `params`,
+`gnoland`, `chain` (gno event types), `bft` (tm2/pkg/bft/types), `abci`,
+`sdk`, `merkle`, `bitarray`, `crypto`, `secp256k1`, `ed25519` and `multisig`.
+Field names are the Go names in lowerCamelCase (`ChainID` becomes `chainID`).
+The JSON keys are unchanged.
+
+The types Go encodes through `MarshalAmino` have JS values that are easy to
+work with:
+
+| Go | JS value | Helpers |
+|----|----------|---------|
+| `crypto.Address` | `Uint8Array` (20 bytes) | `addressToBech32`, `addressFromBech32` |
+| `std.Coin` | `{ denom, amount: bigint }` | `parseCoin`, `formatCoin` |
+| `std.Coins` | `Coin[]` | `parseCoins`, `formatCoins` (same validation and sorting as Go) |
+| `params.Param` | `{ key, type, value }` | `parseParam`, `formatParam` |
+| `gnoland.Balance` | `{ address, amount, vesting }` | `parseBalance`, `formatBalance` |
+
+`gnoCodec()` also records which interfaces each type implements, so placing a
+non-message in `std.Tx.msgs` fails, as it does in Go. Extra types can be added
+to a codec, e.g. `cdc.register("/mymod.MsgFoo", MsgFoo, [std.Msg])`.
+
+### Sign bytes for your own types
+
+tm2 signs `sortJSON(aminoJSON(signDoc))`. `sortJSON` matches
+`std.MustSortJSON`: keys sorted, whitespace stripped, and strings and numbers
+re-encoded as Go does.
 
 ## Schema reference
 
@@ -164,6 +220,10 @@ Go, type URLs are matched on the part after the last `/`.
   bytes, unquoted 64-bit JSON integers, and `Any` nesting deeper than 64.
   They also accept what Go accepts, such as non-canonical varints and trailing
   data after a top-level JSON object.
+- **Two Go decoders.** Go decodes types with generated code (every tm2 and
+  gno.land type) differently from types it handles by reflection, on two
+  malformed inputs. The default matches the generated decoders, which is what
+  nodes run. Pass `new Codec({ goDecoder: "reflect" })` to match reflection.
 - **Invalid UTF-8.** Go strings can hold arbitrary bytes, and JS strings
   cannot. By default, invalid sequences decode to U+FFFD, like `TextDecoder`,
   so re-encoding such a value does not reproduce the original bytes. Pass
@@ -182,12 +242,22 @@ pnpm install
 pnpm test          # vitest
 pnpm lint
 pnpm build         # tsc + tsdown + attw
-pnpm fixtures      # regenerate testdata/fixtures.json from go-amino (needs Go and ../gno)
+pnpm schemas       # regenerate src/gno/types.gen.ts from go-amino (needs Go and ../gno)
+pnpm fixtures      # regenerate testdata/*.json from go-amino
 ```
 
-`gen/` is a Go program that fuzzes the types in `gen/types.go` with go-amino
-and records every encode and decode path. `tests/schemas.ts` mirrors those
-types. When you add a type, add it to both.
+`gen/` is a Go module that uses `../gno` through a `replace` directive:
+
+- `gen/schemagen` generates `src/gno/types.gen.ts` for the packages listed in
+  `gen/gnotypes`. Go types with `MarshalAmino` map to the hand-written
+  schemas in `src/gno/reprs.ts`.
+- `gen` itself fuzzes values with go-amino, records every encode and decode
+  path, and writes the fixtures.
+  - `testdata/fixtures.json` covers every amino feature through the types in
+    `gen/types.go`, which `tests/schemas.ts` mirrors. When you add a type
+    there, add it to both.
+  - `testdata/gno-fixtures.json` covers every type in `/gno`.
+  - It also records real gno.land transactions and their sign bytes.
 
 ## License
 

@@ -27,6 +27,7 @@ import {
   type AnyValue,
   type ArrayType,
   type FieldOptions,
+  type InterfaceType,
   resolve,
   type SliceType,
   type StructType,
@@ -61,7 +62,7 @@ export class JsonEncoder {
       case "repr":
         return this.encode(info.repr, info.toRepr(value), fopts);
       case "interface":
-        return this.encodeInterface(value as AnyValue | null, fopts);
+        return this.encodeInterface(value as AnyValue | null, fopts, info);
       case "bytes":
         if (value == null) return "null";
         return quote(toBase64(asBytes(value, typeName(info))));
@@ -106,12 +107,14 @@ export class JsonEncoder {
   }
 
   /** Go `encodeReflectJSONInterface`. */
-  encodeInterface(any: AnyValue | null | undefined, fopts: FieldOptions): string {
+  encodeInterface(any: AnyValue | null | undefined, fopts: FieldOptions, iface?: InterfaceType): string {
     if (any == null) return "null";
     if (typeof any !== "object" || typeof any.typeUrl !== "string") {
       throw new AminoError("interface values must be { typeUrl, value } objects");
     }
-    const cinfo = resolve(this.registry.resolveTypeUrl(any.typeUrl).type);
+    const resolved = this.registry.resolveTypeUrl(any.typeUrl);
+    if (iface) this.registry.assertImplements(iface, resolved.typeUrl);
+    const cinfo = resolve(resolved.type);
     if (any.value === null && goKind(cinfo) === "struct") {
       throw new AminoError(`illegal nil value of type ${any.typeUrl} for an interface; `
         + "nil-pointer interface values are forbidden");

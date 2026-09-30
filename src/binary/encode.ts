@@ -32,6 +32,7 @@ import {
   type AnyValue,
   type ArrayType,
   type FieldOptions,
+  type InterfaceType,
   resolve,
   type ResolvedFieldOptions,
   type SliceType,
@@ -96,7 +97,7 @@ export class BinaryEncoder {
         this.encode(w, info.repr, info.toRepr(value), fopts, bare, byteOption);
         return;
       case "interface":
-        this.encodeInterface(w, value as AnyValue | null, fopts, bare);
+        this.encodeInterface(w, value as AnyValue | null, fopts, bare, info);
         return;
       case "bytearray": {
         const bz = asBytes(value, typeName(info));
@@ -206,7 +207,7 @@ export class BinaryEncoder {
   }
 
   /** Go `encodeReflectBinaryInterface`: a google.protobuf.Any. */
-  private encodeInterface(w: Writer, any: AnyValue | null | undefined, fopts: Opts, bare: boolean) {
+  private encodeInterface(w: Writer, any: AnyValue | null | undefined, fopts: Opts, bare: boolean, iface?: InterfaceType) {
     if (any == null) {
       writeMaybeBare(w, EMPTY, bare);
       return;
@@ -214,7 +215,10 @@ export class BinaryEncoder {
     if (typeof any !== "object" || typeof any.typeUrl !== "string") {
       throw new AminoError("interface values must be { typeUrl, value } objects");
     }
-    const cinfo = this.registry.resolveTypeUrl(any.typeUrl).type;
+    const {
+      typeUrl, type: cinfo,
+    } = this.registry.resolveTypeUrl(any.typeUrl);
+    if (iface) this.registry.assertImplements(iface, typeUrl);
     const cr = resolve(cinfo);
     if (cr.kind === "pointer" || cr.kind === "interface") {
       throw new AminoError(`registered type for ${any.typeUrl} must be concrete`);

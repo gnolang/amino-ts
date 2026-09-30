@@ -414,7 +414,10 @@ export const t = {
     return RESERVED;
   },
 
-  /** Go interface type. Concrete values are looked up in the codec by type URL. */
+  /**
+   * Go interface type. Concrete values are looked up in the codec by type
+   * URL; see `Codec.register` for restricting which types it may hold.
+   */
   interface(name?: string): InterfaceType {
     return Object.freeze({
       kind: "interface",
@@ -473,6 +476,8 @@ export interface TypeRegistry {
     typeUrl: string
     type: AminoType
   }
+  /** Throws when the type is known not to implement the interface. */
+  assertImplements(iface: InterfaceType, typeUrl: string): void
 }
 
 /** Follows `lazy` references until a concrete descriptor is reached. */
