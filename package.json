@@ -1,6 +1,6 @@
 {
   "name": "@gnolang/amino-ts",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Schema-driven Amino binary and JSON encoding/decoding for Tendermint2 and gno.land, byte-compatible with the Go implementation",
   "contributors": [
     "Alex M.<alex.megalokonomos@tendermint.com>"
