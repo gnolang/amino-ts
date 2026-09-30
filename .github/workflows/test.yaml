@@ -1,0 +1,30 @@
+on:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 'lts/*'
+          cache: 'pnpm'
+
+      - name: Install modules
+        run: pnpm install --frozen-lockfile
+
+      # Type-checks, bundles and runs "Are the types wrong?" on the package exports,
+      # so a broken build is caught before it reaches the release workflow.
+      - name: Build
+        run: pnpm build
+
+      - name: Tests
+        run: pnpm test:coverage --run
