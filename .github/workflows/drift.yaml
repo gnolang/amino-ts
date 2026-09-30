@@ -1,0 +1,103 @@
+name: Go drift
+
+# Regenerates the schemas (src/gno/types.gen.ts) and the go-amino fixtures
+# (testdata/) against the latest gnolang/gno master, then runs the tests.
+#
+# - A diff means gno changed its amino types or go-amino's output: regenerate
+#   with `pnpm schemas && pnpm fixtures` and review.
+# - A test failure means amino-ts no longer matches what Go produces.
+
+on:
+  schedule:
+    - cron: '0 6 * * 1' # Mondays, 06:00 UTC
+  workflow_dispatch:
+    inputs:
+      gno-ref:
+        description: gnolang/gno branch, tag or commit to check against
+        default: master
+
+permissions:
+  contents: read
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      # gen/go.mod points at ../../gno, so check both repos out side by side.
+      - name: Checkout amino-ts
+        uses: actions/checkout@v7
+        with:
+          path: amino-ts
+
+      - name: Checkout gno
+        uses: actions/checkout@v7
+        with:
+          repository: gnolang/gno
+          ref: ${{ inputs.gno-ref || 'master' }}
+          path: gno
+
+      - name: Setup Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: gno/go.mod
+          cache-dependency-path: |
+            gno/go.sum
+            amino-ts/gen/go.sum
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          package_json_file: amino-ts/package.json
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 'lts/*'
+          cache: 'pnpm'
+          cache-dependency-path: amino-ts/pnpm-lock.yaml
+
+      - name: Install modules
+        working-directory: amino-ts
+        run: pnpm install --frozen-lockfile
+
+      - name: Regenerate schemas and fixtures
+        working-directory: amino-ts
+        run: |
+          (cd gen && go mod tidy)
+          pnpm schemas
+          pnpm fixtures
+
+      - name: Report changes
+        working-directory: amino-ts
+        run: |
+          gno_sha=$(git -C ../gno rev-parse --short HEAD)
+          if git diff --quiet; then
+            echo "No drift against gnolang/gno@${gno_sha}." >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "### Drift against gnolang/gno@${gno_sha}"
+              echo
+              echo "Regenerate with \`pnpm schemas && pnpm fixtures\` and review."
+              echo
+              echo '```'
+              git diff --stat
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            git diff > drift.patch
+          fi
+
+      - name: Upload diff
+        if: hashFiles('amino-ts/drift.patch') != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: drift-patch
+          path: amino-ts/drift.patch
+
+      # Checked against the regenerated fixtures: does TS still match Go?
+      - name: Tests
+        working-directory: amino-ts
+        run: pnpm test --run
+
+      - name: Fail on drift
+        working-directory: amino-ts
+        run: git diff --exit-code --stat
