@@ -7,9 +7,22 @@ on:
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
+permissions:
+  contents: read
+
 jobs:
+  # Nothing is published unless lint and tests pass on the same commit.
+  lint:
+    name: Linter
+    uses: ./.github/workflows/lint.yaml
+
+  test:
+    name: Tests
+    uses: ./.github/workflows/test.yaml
+
   release:
     name: Release
+    needs: [lint, test]
     runs-on: ubuntu-latest
     permissions:
       contents: write

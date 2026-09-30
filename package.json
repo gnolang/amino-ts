@@ -85,9 +85,10 @@
     "vitest": "^5.0.1"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "author": "Alex M.<alex.megalokonomos@tendermint.com>",
   "license": "Apache-2.0",
-  "homepage": "https://gno.land/"
+  "homepage": "https://gno.land/",
+  "packageManager": "pnpm@10.20.0"
 }
