@@ -21,6 +21,7 @@ import (
 // reprs maps Go types with MarshalAmino to hand-written schemas in src/gno/reprs.ts.
 var reprs = map[string]string{
 	"github.com/gnolang/gno/tm2/pkg/crypto.Address":       "reprs.Address",
+	"github.com/gnolang/gno/tm2/pkg/std.SessionAddress":   "reprs.SessionAddress",
 	"github.com/gnolang/gno/tm2/pkg/std.Coin":             "reprs.Coin",
 	"github.com/gnolang/gno/tm2/pkg/std.Coins":            "reprs.Coins",
 	"github.com/gnolang/gno/tm2/pkg/sdk/params.Param":     "reprs.Param",
