@@ -442,7 +442,7 @@ const std_Fee = t.struct("std.Fee", {
 const std_Signature = t.struct("std.Signature", {
   pubKey: t.field(crypto_PubKey, { json: "pub_key" }),
   signature: t.bytes,
-  sessionAddr: t.field(reprs.Address, { json: "session_addr", omitEmpty: true }),
+  sessionAddr: t.field(reprs.SessionAddress, { json: "session_addr", omitEmpty: true }),
 });
 
 const std_Tx = t.struct("std.Tx", {

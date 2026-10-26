@@ -117,6 +117,7 @@ work with:
 | Go | JS value | Helpers |
 |----|----------|---------|
 | `crypto.Address` | `Uint8Array` (20 bytes) | `addressToBech32`, `addressFromBech32` |
+| `std.SessionAddress` | `Uint8Array` (20 bytes); the zero address encodes as `""` and is omitted | `addressToBech32`, `addressFromBech32` |
 | `std.Coin` | `{ denom, amount: bigint }` | `parseCoin`, `formatCoin` |
 | `std.Coins` | `Coin[]` | `parseCoins`, `formatCoins` (same validation and sorting as Go) |
 | `params.Param` | `{ key, type, value }` | `parseParam`, `formatParam` |

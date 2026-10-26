@@ -100,7 +100,7 @@ func txCases() []TxCase {
 		}
 		s.tx.Signatures = []std.Signature{{PubKey: pub, Signature: sig}}
 		if s.name == "multi-msg" {
-			s.tx.Signatures = append(s.tx.Signatures, std.Signature{Signature: sig, SessionAddr: other})
+			s.tx.Signatures = append(s.tx.Signatures, std.Signature{Signature: sig, SessionAddr: std.SessionAddress(other)})
 		}
 		bin := amino.MustMarshal(s.tx)
 		js := amino.MustMarshalJSON(s.tx)
