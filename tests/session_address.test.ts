@@ -23,7 +23,7 @@ import {
 const cdc = gnoCodec();
 const zero = new Uint8Array(20);
 
-describe("std.SessionAddress", () => {
+describe("std.Signature.sessionAddr (skipZero)", () => {
   it("omits a zero session address in binary and JSON", () => {
     const sig = {
       pubKey: null,

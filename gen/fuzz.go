@@ -2,6 +2,7 @@ package main
 
 import (
 	"math"
+	"reflect"
 	"time"
 
 	fuzz "github.com/google/gofuzz"
@@ -137,6 +138,17 @@ func randCoin(c fuzz.Continue) Coin {
 }
 
 var fuzzFuncs = []any{
+	// Random values are almost never zero, so zero each SkipZero field half the
+	// time, or amino:"skip_zero" would hardly ever apply.
+	func(v *SkipZero, c fuzz.Continue) {
+		c.FuzzNoCustom(v)
+		rv := reflect.ValueOf(v).Elem()
+		for i := range rv.NumField() {
+			if c.RandBool() {
+				rv.Field(i).SetZero()
+			}
+		}
+	},
 	func(s *string, c fuzz.Continue) { *s = randString(c) },
 	func(p **string, c fuzz.Continue) {
 		if c.Intn(4) == 0 {

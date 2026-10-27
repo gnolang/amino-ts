@@ -32,6 +32,7 @@ var Package = amino.RegisterPackage(amino.NewPackage(
 	ConcreteA{}, ConcreteB{}, ConcreteC{}, ConcreteEmpty{}, ConcreteStr(""),
 	ConcreteSl(nil), ConcreteTime{}, Interfaces{},
 	Coin{}, Coins(nil), Addr{}, Listy{}, ListyHolder{}, Pair{}, PairRepr{}, Wrapped{}, Boxed(0), BoxedRepr{}, Tiny{}, Reprs{},
+	FullAddr{}, SkipZero{},
 	IntDef(0), IntAr{}, IntSl(nil), ByteAr{}, ByteSl(nil), StrSl(nil), SmallSl(nil), SmallAr{},
 	StrSlSl(nil), Int8SlSl(nil),
 ))
@@ -289,6 +290,7 @@ var entries = []entry{
 	{"ReservedV2", &ReservedV2{}, 20},
 	{"Interfaces", &Interfaces{}, 60},
 	{"Reprs", &Reprs{}, 50},
+	{"SkipZero", &SkipZero{}, 40},
 	{"ListyHolder", &ListyHolder{}, 4},
 	{"IntDef", new(IntDef), 10},
 	{"IntAr", new(IntAr), 10},

@@ -320,7 +320,7 @@ export function isJSONEmpty(type: AminoType, value: unknown): boolean {
 }
 
 /** Go `reflect.DeepEqual(v, reflect.Zero(T))`. */
-function isGoZero(type: AminoType, v: unknown): boolean {
+export function isGoZero(type: AminoType, v: unknown): boolean {
   const r = resolve(type);
   if (v === undefined) v = zeroValue(r);
   switch (r.kind) {

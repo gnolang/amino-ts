@@ -14,6 +14,7 @@ import {
   deref,
   elemIsReprByte,
   goKind,
+  isGoZero,
   isImplicitList,
   isNonstructDefault,
   isStructOrUnpacked,
@@ -307,6 +308,8 @@ export class BinaryEncoder {
     for (const field of info.fields) {
       const frv = value?.[field.key];
       const ft = resolve(field.type);
+      // amino:"skip_zero" judges the Go value, before any repr conversion.
+      if (field.options.skipZero && isGoZero(field.type, frv)) continue;
       const frvIsPtr = ft.kind === "pointer";
       if (!field.options.writeEmpty && isNonstructDefault(ft, frv)) {
         continue;
