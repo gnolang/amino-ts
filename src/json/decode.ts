@@ -198,8 +198,9 @@ export class JsonDecoder {
       const v = m.get(name);
       if (v === undefined) {
         // Go leaves omitempty fields untouched (the zero value of a fresh
-        // struct) and resets the others to their default value.
-        out[field.key] = field.options.omitEmpty ? goZero(field.type) : defaultValue(field.type);
+        // struct) and resets the others, skipZero ones included, to their
+        // default value.
+        out[field.key] = field.options.omitEmpty && !field.options.skipZero ? goZero(field.type) : defaultValue(field.type);
         continue;
       }
       out[field.key] = this.decode(v, field.type, field.options, anyDepth);

@@ -472,3 +472,42 @@ type (
 	StrSlSl  [][]string
 	Int8SlSl [][]int8
 )
+
+// FullAddr mimics crypto.Address as it is: a byte array whose repr is never
+// empty, so amino writes its zero value unless the field is tagged
+// amino:"skip_zero". Addr above returns "" for zero and would hide the tag.
+type FullAddr [4]byte
+
+func (a FullAddr) MarshalAmino() (string, error) {
+	return fmt.Sprintf("%x", a[:]), nil
+}
+
+func (a *FullAddr) UnmarshalAmino(s string) error {
+	if s == "" {
+		*a = FullAddr{}
+		return nil
+	}
+	if len(s) != 8 {
+		return fmt.Errorf("bad fulladdr %q", s)
+	}
+	for i := range 4 {
+		v, err := strconv.ParseUint(s[2*i:2*i+2], 16, 8)
+		if err != nil {
+			return err
+		}
+		a[i] = byte(v)
+	}
+	return nil
+}
+
+// SkipZero exercises amino:"skip_zero" (gnolang/gno#6399): a repr whose zero
+// value has a non-empty repr, an array, a struct and a string, next to
+// untagged controls. Mirrored in tests/schemas.ts.
+type SkipZero struct {
+	Addr      FullAddr `amino:"skip_zero"`
+	Arr       [2]int64 `amino:"skip_zero"`
+	Small     Small    `amino:"skip_zero"`
+	Name      string   `amino:"skip_zero"`
+	PlainAddr FullAddr
+	PlainArr  [2]int64
+}

@@ -21,7 +21,6 @@ import (
 // reprs maps Go types with MarshalAmino to hand-written schemas in src/gno/reprs.ts.
 var reprs = map[string]string{
 	"github.com/gnolang/gno/tm2/pkg/crypto.Address":       "reprs.Address",
-	"github.com/gnolang/gno/tm2/pkg/std.SessionAddress":   "reprs.SessionAddress",
 	"github.com/gnolang/gno/tm2/pkg/std.Coin":             "reprs.Coin",
 	"github.com/gnolang/gno/tm2/pkg/std.Coins":            "reprs.Coins",
 	"github.com/gnolang/gno/tm2/pkg/sdk/params.Param":     "reprs.Param",
@@ -173,6 +172,7 @@ func (g *gen) structExpr(rt reflect.Type, info *amino.TypeInfo) string {
 		flag(f.Unsafe, "unsafe")
 		flag(f.WriteEmpty, "writeEmpty")
 		flag(f.NilElements, "nilElements")
+		flag(f.SkipZero, "skipZero")
 		typ := g.expr(f.Type)
 		if len(opts) == 0 {
 			fmt.Fprintf(&b, "\n  %s: %s,", key, typ)
