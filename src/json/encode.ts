@@ -14,6 +14,7 @@ import {
 import {
   deref,
   goKind,
+  isGoZero,
   isJSONEmpty,
   typeName,
   zeroValue,
@@ -148,6 +149,8 @@ export class JsonEncoder {
     const parts: string[] = [];
     for (const field of info.fields) {
       const frv = value?.[field.key];
+      // amino:"skip_zero" leaves a zero Go value out of JSON too.
+      if (field.options.skipZero && isGoZero(field.type, frv)) continue;
       if (field.options.omitEmpty && isJSONEmpty(field.type, frv)) continue;
       parts.push(`${quote(field.options.json ?? field.key)}:${this.encode(field.type, frv, field.options)}`);
     }

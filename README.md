@@ -117,7 +117,6 @@ work with:
 | Go | JS value | Helpers |
 |----|----------|---------|
 | `crypto.Address` | `Uint8Array` (20 bytes) | `addressToBech32`, `addressFromBech32` |
-| `std.SessionAddress` | `Uint8Array` (20 bytes); the zero address encodes as `""` and is omitted | `addressToBech32`, `addressFromBech32` |
 | `std.Coin` | `{ denom, amount: bigint }` | `parseCoin`, `formatCoin` |
 | `std.Coins` | `Coin[]` | `parseCoins`, `formatCoins` (same validation and sorting as Go) |
 | `params.Param` | `{ key, type, value }` | `parseParam`, `formatParam` |
@@ -175,9 +174,17 @@ Wrap a type in `t.field(type, options)` to add tags:
 | `amino:"unsafe"` | `unsafe: true` |
 | `amino:"write_empty"` | `writeEmpty: true` |
 | `amino:"nil_elements"` | `nilElements: true` |
+| `amino:"skip_zero"` | `skipZero: true` |
 
 A field tagged `json:"-"` is not encoded at all, so leave it out of the schema.
 A field missing from a JS object is encoded as its zero value.
+
+`skipZero` leaves a field out of binary and JSON whenever its Go value is zero,
+even where its repr would encode to bytes (a zero `crypto.Address` is a 42-byte
+bech32 string otherwise), and a missing field decodes to the zero value; an
+explicitly encoded zero still decodes. As in go-amino it is refused next to
+`writeEmpty`, on `time` and on a pointer to anything but a struct, and here
+also on a repr type without `isZero`, which is how a repr says what zero is.
 
 ### Repr types (`MarshalAmino`)
 

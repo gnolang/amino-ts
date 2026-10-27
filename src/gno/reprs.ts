@@ -107,19 +107,6 @@ export const Address = t.repr(
   },
 );
 
-/** `std.SessionAddress`: a `crypto.Address` whose zero value marshals to `""`, so amino omits the field in binary as well as JSON. */
-export const SessionAddress = t.repr(
-  t.string,
-  (addr: Uint8Array) => (addr.every(b => b === 0) ? "" : addressToBech32(addr)),
-  s => (s === "" ? new Uint8Array(ADDRESS_SIZE) : addressFromBech32(s)),
-  {
-    name: "std.SessionAddress",
-    goKind: "array",
-    isZero: a => a.every(b => b === 0),
-    zero: () => new Uint8Array(ADDRESS_SIZE),
-  },
-);
-
 // ----------------------------------------
 // std.Coin, std.Coins
 

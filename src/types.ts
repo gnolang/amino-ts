@@ -47,6 +47,12 @@ export interface FieldOptions {
   writeEmpty?: boolean
   /** Let empty list elements decode as `null` (`amino:"nil_elements"`). */
   nilElements?: boolean
+  /**
+   * Leave the field out of binary and JSON whenever its Go value is zero, even
+   * where its repr would encode to bytes (`amino:"skip_zero"`). A missing field
+   * decodes to the zero value. A repr type needs `isZero` for this to apply.
+   */
+  skipZero?: boolean
 }
 
 /** Options with the field number filled in, as the codec sees them. */
@@ -313,6 +319,17 @@ function validateFieldOptions(struct: string | undefined, key: string, type: Ami
   }
   if (!o.unsafe && (u.kind === "float32" || u.kind === "float64")) {
     throw new AminoError(`${where}: floating point types require the unsafe option`);
+  }
+  if (o.skipZero) {
+    if (o.writeEmpty) throw new AminoError(`${where}: skipZero and writeEmpty are mutually exclusive`);
+    // A missing field decodes to its default value, which must be the zero
+    // value the tag left out: not so for time (1970) or a pointer to anything
+    // but a struct (a pointer to the zero value), as in go-amino.
+    if (type.kind === "time") throw new AminoError(`${where}: skipZero is not allowed on a time field, which decodes to 1970 when missing`);
+    if (type.kind === "pointer" && type.elem.kind !== "lazy" && type.elem.kind !== "struct") {
+      throw new AminoError(`${where}: skipZero is not allowed on a pointer to ${type.elem.kind}, which decodes to a pointer to the zero value when missing`);
+    }
+    if (type.kind === "repr" && !type.isZero) throw new AminoError(`${where}: skipZero on a repr type requires its isZero`);
   }
 }
 

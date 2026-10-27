@@ -375,6 +375,38 @@ export const Addr = t.repr(
   },
 );
 
+export const FullAddr = t.repr(
+  t.string,
+  (a: Uint8Array) => Array.from(a, b => b.toString(16).padStart(2, "0")).join(""),
+  (s) => {
+    if (s === "") return new Uint8Array(4);
+    if (!/^[0-9a-fA-F]{8}$/.test(s)) throw new AminoError(`bad fulladdr ${JSON.stringify(s)}`);
+    return Uint8Array.from(s.match(/../g)!, h => parseInt(h, 16));
+  },
+  {
+    name: "FullAddr",
+    goKind: "array",
+    isZero: a => a.every(b => b === 0),
+  },
+);
+
+export const SkipZero = t.struct("SkipZero", {
+  Addr: f(FullAddr, {
+    skipZero: true,
+  }),
+  Arr: f(t.array(t.int64, 2), {
+    skipZero: true,
+  }),
+  Small: f(Small, {
+    skipZero: true,
+  }),
+  Name: f(t.string, {
+    skipZero: true,
+  }),
+  PlainAddr: FullAddr,
+  PlainArr: t.array(t.int64, 2),
+});
+
 export const PairRepr = t.struct("PairRepr", {
   C: t.int64,
   D: t.int64,
@@ -508,6 +540,7 @@ export const schemas = {
   Interfaces,
   Reprs,
   ListyHolder,
+  SkipZero,
   IntDef: t.int64,
   IntAr: t.array(t.int64, 4),
   IntSl: t.slice(t.int64),
@@ -567,6 +600,8 @@ export function newCodec(options?: CodecOptions): Codec {
     BoxedRepr,
     Tiny,
     Reprs,
+    FullAddr,
+    SkipZero,
     IntDef: schemas.IntDef,
     IntAr: schemas.IntAr,
     IntSl: schemas.IntSl,
