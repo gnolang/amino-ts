@@ -223,6 +223,25 @@ describe("interfaces", () => {
     expect(c.unmarshalJSONAny(c.marshalJSONAny(any))).toEqual(any);
   });
 
+  it("encodes aliases with the registered type URL", () => {
+    const alias = {
+      typeUrl: "/example.com/bank.Send",
+      value: any.value,
+    };
+    expect(toHex(c.marshalAny(alias))).toBe("0a0a2f62616e6b2e53656e6412070a03626f621005");
+    expect(c.marshalJSONAny(alias)).toBe("{\"@type\":\"/bank.Send\",\"to\":\"bob\",\"amount\":\"5\"}");
+    const h = {
+      msg: any,
+      msgs: [any, null],
+    };
+    const aliasHolder = {
+      msg: alias,
+      msgs: [alias, null],
+    };
+    expect(c.marshal(Holder, aliasHolder)).toEqual(c.marshal(Holder, h));
+    expect(c.marshalJSON(Holder, aliasHolder)).toBe(c.marshalJSON(Holder, h));
+  });
+
   it("uses {\"@type\",\"value\"} for non-struct concrete types", () => {
     expect(c.marshalJSONAny({
       typeUrl: "/google.protobuf.Int64Value",

@@ -121,7 +121,7 @@ export class JsonEncoder {
         + "nil-pointer interface values are forbidden");
     }
     const body = this.encode(cinfo, any.value, fopts);
-    const prefix = `{"@type":${quote(any.typeUrl)}`;
+    const prefix = `{"@type":${quote(resolved.typeUrl)}`;
     if (isJSONAnyValueType(cinfo)) {
       if (body.startsWith("{")) throw new AminoError("unexpected JSON object");
       return `${prefix},"value":${body}}`;
