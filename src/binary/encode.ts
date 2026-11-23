@@ -231,7 +231,7 @@ export class BinaryEncoder {
 
     const buf = new Writer();
     buf.fieldKey(1, Typ3.ByteLength);
-    buf.byteSlice(utf8Encode(any.typeUrl));
+    buf.byteSlice(utf8Encode(typeUrl));
 
     const buf2 = new Writer();
     this.encodeMessage(buf2, cr, any.value, fopts);

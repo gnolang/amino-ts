@@ -139,6 +139,28 @@ describe("gno helpers", () => {
     })).toThrow(/not assignable to interface std.Msg/);
   });
 
+  it("signs and encodes an aliased msg type URL as Go does", () => {
+    const c = txs.find(x => x.name === "send")!;
+    const tx = cdc.unmarshal(std.Tx, fromHex(c.bin));
+    const msgs = tx.msgs!.map(m => ({
+      ...m,
+      typeUrl: "/example.com" + m.typeUrl,
+    }));
+    expect(toHex(cdc.marshal(std.Tx, {
+      ...tx,
+      msgs,
+    }))).toBe(c.bin);
+    const doc: SignDoc = {
+      chainID: c.chainId,
+      accountNumber: BigInt(c.accountNumber),
+      sequence: BigInt(c.sequence),
+      fee: tx.fee,
+      msgs,
+      memo: tx.memo,
+    };
+    expect(utf8Decode(getSignaturePayload(cdc, doc))).toBe(c.signPayload);
+  });
+
   it("parses coins like std.ParseCoins", () => {
     expect(parseCoins(" 2ugnot,1atom ")).toEqual([
       {
