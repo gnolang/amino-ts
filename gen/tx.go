@@ -74,6 +74,13 @@ func txCases() []TxCase {
 			}}},
 			Fee: fee,
 		}, 3, 10},
+		{"run-max-send", std.Tx{
+			Msgs: []std.Msg{vm.MsgRun{Caller: caller, Package: &std.MemPackage{
+				Name: "main", Path: "gno.land/e/" + caller.String() + "/run",
+				Files: []*std.MemFile{{Name: "main.gno", Body: "package main\n\nfunc main() { println(\"hi\") }\n"}},
+			}, MaxSend: std.NewCoins(std.NewCoin("ugnot", 1000))}},
+			Fee: fee,
+		}, 3, 11},
 		{"multi-msg", std.Tx{
 			Msgs: []std.Msg{
 				bank.MsgSend{FromAddress: caller, ToAddress: other, Amount: std.NewCoins(std.NewCoin("atom", 3), std.NewCoin("ugnot", 2))},

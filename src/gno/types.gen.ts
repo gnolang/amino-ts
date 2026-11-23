@@ -503,6 +503,8 @@ const std_GasOverflowError = t.struct("std.GasOverflowError", {});
 
 const std_RestrictedTransferError = t.struct("std.RestrictedTransferError", {});
 
+const std_QueryTimeoutError = t.struct("std.QueryTimeoutError", {});
+
 const std_SessionExpiredError = t.struct("std.SessionExpiredError", {});
 
 const std_SessionNotFoundError = t.struct("std.SessionNotFoundError", {});
@@ -622,6 +624,7 @@ const vm_MsgRun = t.struct("vm.MsgRun", {
   send: reprs.Coins,
   maxDeposit: t.field(reprs.Coins, { json: "max_deposit" }),
   package: t.pointer(std_MemPackage),
+  maxSend: t.field(reprs.Coins, { json: "max_send", omitEmpty: true }),
 });
 
 const vm_MsgAddPackage = t.struct("vm.MsgAddPackage", {
@@ -856,6 +859,7 @@ export const std = {
   Msg: std_Msg,
   NoSignaturesError: std_NoSignaturesError,
   OutOfGasError: std_OutOfGasError,
+  QueryTimeoutError: std_QueryTimeoutError,
   RestrictedTransferError: std_RestrictedTransferError,
   SessionExpiredError: std_SessionExpiredError,
   SessionLimitError: std_SessionLimitError,
@@ -1044,6 +1048,7 @@ export function registerGnoTypes(cdc: Codec): Codec {
     .register("/std.NoSignaturesError", std_NoSignaturesError, [abci_Error])
     .register("/std.GasOverflowError", std_GasOverflowError, [abci_Error])
     .register("/std.RestrictedTransferError", std_RestrictedTransferError, [abci_Error])
+    .register("/std.QueryTimeoutError", std_QueryTimeoutError, [abci_Error])
     .register("/std.SessionExpiredError", std_SessionExpiredError, [abci_Error])
     .register("/std.SessionNotFoundError", std_SessionNotFoundError, [abci_Error])
     .register("/std.SessionLimitError", std_SessionLimitError, [abci_Error])
